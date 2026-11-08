@@ -1,0 +1,29 @@
+{
+  "agent": {
+    "region": "us-east-2",
+    "logfile": "C:\\ProgramData\\Amazon\\AmazonCloudWatchAgent\\Logs\\amazon-cloudwatch-agent.log"
+  },
+  "logs": {
+    "logs_collected": {
+      "windows_events": {
+        "collect_list": [
+          {
+            "event_name": "Security",
+            "event_ids": [4625, 4720, 4722, 4732, 4740, 1102],
+            "event_levels": ["INFORMATION", "WARNING", "ERROR", "CRITICAL"],
+            "event_format": "xml",
+            "log_group_name": "/hsoc/windows/security",
+            "log_stream_name": "{hostname}"
+          },
+          {
+            "event_name": "Microsoft-Windows-Sysmon/Operational",
+            "event_levels": ["INFORMATION", "WARNING", "ERROR", "CRITICAL", "VERBOSE"],
+            "event_format": "xml",
+            "log_group_name": "/hsoc/windows/sysmon",
+            "log_stream_name": "{hostname}"
+          }
+        ]
+      }
+    }
+  }
+}

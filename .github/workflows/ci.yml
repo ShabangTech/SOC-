@@ -1,0 +1,27 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sysmon config is well-formed XML
+        run: python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('sysmon/sysmon-homesoc.xml')"
+      - name: Agent config is valid JSON
+        run: python3 -c "import json; json.load(open('agent/amazon-cloudwatch-agent.json'))"

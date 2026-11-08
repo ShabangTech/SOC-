@@ -1,0 +1,6 @@
+# Copy to C:\ProgramData\Amazon\AmazonCloudWatchAgent\common-config.toml
+# Points the agent (which runs as SYSTEM) at the hsoc-shipper profile.
+# Replace <YOUR-WINDOWS-USER> with your Windows user folder name.
+[credentials]
+  shared_credential_profile = "hsoc-shipper"
+  shared_credential_file = "C:\\Users\\<YOUR-WINDOWS-USER>\\.aws\\credentials"

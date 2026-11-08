@@ -1,0 +1,92 @@
+<!--
+  Home SOC - custom Sysmon configuration (v1, to be tuned)
+  Goal: record process, network and registry activity that matters for
+  threat hunting, while keeping volume (and CloudWatch cost) low.
+
+  Install / update (admin PowerShell):
+    .\Sysmon64.exe -accepteula -i sysmon-homesoc.xml     (first install)
+    .\Sysmon64.exe -c sysmon-homesoc.xml                  (apply changes)
+
+  Event types logged:
+    1  ProcessCreate      - everything except a few noisy Windows helpers
+    3  NetworkConnect     - only from tools attackers like to abuse
+    8  CreateRemoteThread - all (rare, high value)
+    12/13/14 Registry     - only autorun / persistence locations
+    19-21 WMI             - all (rare, high value: WMI persistence)
+    25 ProcessTampering   - all (rare, high value)
+-->
+<Sysmon schemaversion="4.90">
+  <HashAlgorithms>sha256</HashAlgorithms>
+  <CheckRevocation/>
+  <EventFiltering>
+
+    <!-- 1: Process creation. Log all, drop known-noisy helpers. Tune with real data. -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\wbem\WmiPrvSE.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- 3: Network connections. Only from binaries commonly abused ("living off the land")
+         or from user-writable folders. MITRE T1059, T1105, T1218. -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <Image condition="end with">\powershell.exe</Image>
+        <Image condition="end with">\pwsh.exe</Image>
+        <Image condition="end with">\cmd.exe</Image>
+        <Image condition="end with">\rundll32.exe</Image>
+        <Image condition="end with">\regsvr32.exe</Image>
+        <Image condition="end with">\mshta.exe</Image>
+        <Image condition="end with">\certutil.exe</Image>
+        <Image condition="end with">\bitsadmin.exe</Image>
+        <Image condition="end with">\wscript.exe</Image>
+        <Image condition="end with">\cscript.exe</Image>
+        <Image condition="contains">\AppData\Local\Temp\</Image>
+        <Image condition="contains">\Users\Public\</Image>
+        <DestinationPort condition="is">4444</DestinationPort>
+        <DestinationPort condition="is">1337</DestinationPort>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- 12/13/14: Registry. Only persistence locations. MITRE T1547.001, T1546.012. -->
+    <RuleGroup name="Registry" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject condition="contains">\Image File Execution Options\</TargetObject>
+        <TargetObject condition="contains">\Winlogon\Shell</TargetObject>
+        <TargetObject condition="contains">\Winlogon\Userinit</TargetObject>
+        <TargetObject condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- Rare, high-value events: log all (empty exclude = nothing excluded). -->
+    <RuleGroup name="HighValue" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude"/>
+      <WmiEvent onmatch="exclude"/>
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!-- Noisy event types switched off for now (empty include = log nothing). -->
+    <RuleGroup name="Off" groupRelation="or">
+      <ProcessTerminate onmatch="include"/>
+      <FileCreateTime onmatch="include"/>
+      <DriverLoad onmatch="include"/>
+      <ImageLoad onmatch="include"/>
+      <RawAccessRead onmatch="include"/>
+      <ProcessAccess onmatch="include"/>
+      <FileCreate onmatch="include"/>
+      <FileCreateStreamHash onmatch="include"/>
+      <PipeEvent onmatch="include"/>
+      <DnsQuery onmatch="include"/>
+      <FileDelete onmatch="include"/>
+      <ClipboardChange onmatch="include"/>
+      <FileDeleteDetected onmatch="include"/>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>
