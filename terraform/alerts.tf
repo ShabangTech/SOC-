@@ -74,6 +74,23 @@ locals {
       threshold   = 1
       description = "[HIGH] certutil used with -urlcache (file download). MITRE T1105 Ingress Tool Transfer."
     }
+    # P02a / P02b - malicious document: an Office app (Word, Excel, PowerPoint,
+    # Outlook - all under Office16) launches a command shell. Split in two because
+    # metric filters can't combine AND with OR. Word legitimately starts helpers
+    # like ai.exe, so only shells are matched. Validated with test-metric-filter.
+    # MITRE ATT&CK T1204.002 Malicious File, T1566.001 Spearphishing Attachment
+    "P02a-office-spawns-cmd" = {
+      log_group   = aws_cloudwatch_log_group.sysmon.name
+      pattern     = "\"Office16\" \"<Data Name='OriginalFileName'>Cmd.Exe</Data>\""
+      threshold   = 1
+      description = "[HIGH] Office app launched cmd.exe (possible malicious document). MITRE T1204.002, T1566.001."
+    }
+    "P02b-office-spawns-powershell" = {
+      log_group   = aws_cloudwatch_log_group.sysmon.name
+      pattern     = "\"Office16\" \"<Data Name='OriginalFileName'>PowerShell.EXE</Data>\""
+      threshold   = 1
+      description = "[HIGH] Office app launched PowerShell (possible malicious document). MITRE T1204.002, T1566.001."
+    }
   }
 }
 
