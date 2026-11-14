@@ -63,6 +63,17 @@ locals {
       threshold   = 1
       description = "[MEDIUM] Registry Run/RunOnce key value set (Sysmon 13). MITRE T1547.001 Registry Run Keys."
     }
+    # P03 - ingress tool transfer: certutil used to download a file.
+    # Anchors on OriginalFileName (from the PE header) so a renamed certutil
+    # is still caught. Live test was blocked by Microsoft Defender; pattern
+    # validated with aws logs test-metric-filter instead.
+    # MITRE ATT&CK T1105 Ingress Tool Transfer
+    "P03-certutil-download" = {
+      log_group   = aws_cloudwatch_log_group.sysmon.name
+      pattern     = "\"<Data Name='OriginalFileName'>CertUtil.exe</Data>\" \"urlcache\""
+      threshold   = 1
+      description = "[HIGH] certutil used with -urlcache (file download). MITRE T1105 Ingress Tool Transfer."
+    }
   }
 }
 
