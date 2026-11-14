@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Detections: metric filters turn matching log lines into numbers,
 # alarms watch those numbers, SNS emails you.
-# The agent sends events as XML, so filters match on the <EventID> element.
+# The agent sends events as XML, so filters match on the EventID element.
 # ---------------------------------------------------------------------------
 
 resource "aws_sns_topic" "alerts" {
@@ -43,8 +43,19 @@ locals {
       threshold   = 1
       description = "[MEDIUM] New Windows service installed (7045). MITRE T1543.003 Windows Service."
     }
+    # P01 - execution: PowerShell launched with an encoded (base64) command.
+    # Metric filters are case-sensitive, so common spellings are listed;
+    # the hunting phase will add a case-insensitive Logs Insights regex.
+    # MITRE ATT&CK T1059.001 Command and Scripting Interpreter: PowerShell
+    "P01-encoded-powershell" = {
+      log_group   = aws_cloudwatch_log_group.sysmon.name
+      pattern     = "?\"-EncodedCommand\" ?\"-encodedcommand\" ?\"-enc \" ?\"-Enc \" ?\"-ENC \""
+      threshold   = 1
+      description = "[HIGH] PowerShell run with an encoded command (-EncodedCommand / -enc). MITRE T1059.001."
+    }
   }
 }
+
 resource "aws_cloudwatch_log_metric_filter" "detection" {
   for_each       = local.detections
   name           = "${var.name_prefix}-${each.key}"
