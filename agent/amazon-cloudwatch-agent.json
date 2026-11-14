@@ -21,6 +21,14 @@
             "event_format": "xml",
             "log_group_name": "/hsoc/windows/sysmon",
             "log_stream_name": "{hostname}"
+          },
+          {
+            "event_name": "System",
+            "event_ids": [7045],
+            "event_levels": ["INFORMATION", "WARNING", "ERROR", "CRITICAL"],
+            "event_format": "xml",
+            "log_group_name": "/hsoc/windows/system",
+            "log_stream_name": "{hostname}"
           }
         ]
       }

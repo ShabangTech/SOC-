@@ -33,9 +33,18 @@ locals {
       threshold   = 1
       description = "[HIGH] Account created/enabled (4720/4722), added to local group (4732) or Security log cleared (1102). MITRE T1136, T1098, T1070.001."
     }
+    # P04 - persistence: a new Windows service was installed.
+    # System-log events carry a Qualifiers attribute (<EventID Qualifiers='16384'>),
+    # so this pattern matches only the closing part of the element.
+    # MITRE ATT&CK T1543.003 Create or Modify System Process: Windows Service
+    "P04-new-service-install" = {
+      log_group   = aws_cloudwatch_log_group.system.name
+      pattern     = "\"7045</EventID>\""
+      threshold   = 1
+      description = "[MEDIUM] New Windows service installed (7045). MITRE T1543.003 Windows Service."
+    }
   }
 }
-
 resource "aws_cloudwatch_log_metric_filter" "detection" {
   for_each       = local.detections
   name           = "${var.name_prefix}-${each.key}"

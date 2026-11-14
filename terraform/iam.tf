@@ -24,6 +24,7 @@ data "aws_iam_policy_document" "ship_logs" {
     resources = [
       "${aws_cloudwatch_log_group.security.arn}:*",
       "${aws_cloudwatch_log_group.sysmon.arn}:*",
+      "${aws_cloudwatch_log_group.system.arn}:*",
     ]
   }
 }

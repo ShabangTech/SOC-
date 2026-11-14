@@ -4,7 +4,11 @@ output "shipper_user" {
 }
 
 output "log_groups" {
-  value = [aws_cloudwatch_log_group.security.name, aws_cloudwatch_log_group.sysmon.name]
+  value = [
+    aws_cloudwatch_log_group.security.name,
+    aws_cloudwatch_log_group.sysmon.name,
+    aws_cloudwatch_log_group.system.name,
+  ]
 }
 
 output "alarms" {
