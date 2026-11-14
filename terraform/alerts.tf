@@ -53,6 +53,16 @@ locals {
       threshold   = 1
       description = "[HIGH] PowerShell run with an encoded command (-EncodedCommand / -enc). MITRE T1059.001."
     }
+    # P05 - persistence: a value was written to a Run / RunOnce registry key.
+    # Sysmon Event 13 = registry value set. Terms are ANDed; "Run" also
+    # covers RunOnce. Known tuning item: legitimate installers add Run keys too.
+    # MITRE ATT&CK T1547.001 Boot or Logon Autostart Execution: Registry Run Keys
+    "P05-run-key-persistence" = {
+      log_group   = aws_cloudwatch_log_group.sysmon.name
+      pattern     = "\"<EventID>13</EventID>\" \"CurrentVersion\" \"Run\""
+      threshold   = 1
+      description = "[MEDIUM] Registry Run/RunOnce key value set (Sysmon 13). MITRE T1547.001 Registry Run Keys."
+    }
   }
 }
 
