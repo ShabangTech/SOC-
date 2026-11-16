@@ -1,5 +1,5 @@
 <!--
-  Home SOC - custom Sysmon configuration (v1, to be tuned)
+  Home SOC - custom Sysmon configuration (v2, tuned with one week of real data - Phase 3)
   Goal: record process, network and registry activity that matters for
   threat hunting, while keeping volume (and CloudWatch cost) low.
 
@@ -8,9 +8,10 @@
     .\Sysmon64.exe -c sysmon-homesoc.xml                  (apply changes)
 
   Event types logged:
-    1  ProcessCreate      - everything except a few noisy Windows helpers
+    1  ProcessCreate      - everything except a few noisy Windows helpers and
+                            verified parent/child pairs (see Phase 3 tuning below)
     3  NetworkConnect     - only from tools attackers like to abuse
-    8  CreateRemoteThread - all (rare, high value)
+    8  CreateRemoteThread - all except the real csrss.exe (console signal handling)
     12/13/14 Registry     - only autorun / persistence locations
     19-21 WMI             - all (rare, high value: WMI persistence)
     25 ProcessTampering   - all (rare, high value)
@@ -28,6 +29,29 @@
         <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
         <Image condition="is">C:\Windows\System32\conhost.exe</Image>
         <Image condition="is">C:\Windows\System32\wbem\WmiPrvSE.exe</Image>
+
+        <!-- Phase 3 tuning (2026-11-16), based on one week of data:
+             each exclusion needs BOTH the program and its expected parent,
+             so the same program started by anything else is still logged. -->
+
+        <!-- svchost started by the Service Control Manager: ~2,000/week, normal.
+             svchost from any other parent stays logged (masquerading, MITRE T1036). -->
+        <Rule name="svchost-from-services" groupRelation="and">
+          <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+          <ParentImage condition="is">C:\Windows\System32\services.exe</ParentImage>
+        </Rule>
+
+        <!-- NordVPN setting routes and DNS on connect/disconnect: ~1,000/week.
+             netsh/route from cmd, PowerShell, scripts or an unknown ("-") parent
+             stay logged (firewall/DNS tampering, MITRE T1562.004). -->
+        <Rule name="nordvpn-netsh" groupRelation="and">
+          <Image condition="is">C:\Windows\System32\netsh.exe</Image>
+          <ParentImage condition="is">C:\Program Files\NordVPN\nordvpn-service.exe</ParentImage>
+        </Rule>
+        <Rule name="nordvpn-route" groupRelation="and">
+          <Image condition="is">C:\Windows\System32\ROUTE.EXE</Image>
+          <ParentImage condition="is">C:\Program Files\NordVPN\nordvpn-service.exe</ParentImage>
+        </Rule>
       </ProcessCreate>
     </RuleGroup>
 
@@ -64,9 +88,18 @@
       </RegistryEvent>
     </RuleGroup>
 
+    <!-- 8: CreateRemoteThread. Log all except the real csrss.exe, which injects a
+         short thread into console programs (cmd, git, certutil...) to deliver
+         Ctrl+C / close signals: ~290 of 306 events/week. Exact System32 path only,
+         so a fake csrss.exe elsewhere is still logged. MITRE T1055 Process Injection. -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
     <!-- Rare, high-value events: log all (empty exclude = nothing excluded). -->
     <RuleGroup name="HighValue" groupRelation="or">
-      <CreateRemoteThread onmatch="exclude"/>
       <WmiEvent onmatch="exclude"/>
       <ProcessTampering onmatch="exclude"/>
     </RuleGroup>
