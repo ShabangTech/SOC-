@@ -106,6 +106,21 @@ locals {
       EOT
     }
 
+    # L-Q01 - investigative companion to alarm L01. Pulls the username and
+    # source IP out of each failed SMB login so a brute-force burst shows
+    # who, from where, and how many per 5-minute window. Loopback lab today;
+    # generalises to real sources. MITRE T1110 Brute Force.
+    "L-Q01-smb-brute-force-by-source" = {
+      log_groups = [aws_cloudwatch_log_group.linux_samba.name]
+      query      = <<-EOT
+        filter @message like /NT_STATUS_WRONG_PASSWORD|NT_STATUS_NO_SUCH_USER/
+        | parse @message /remote host \[ipv4:(?<src_ip>[0-9.]+):(?<src_port>[0-9]+)\]/
+        | parse @message /\\\[(?<user>[^\]]+)\]/
+        | stats count(*) as failures by user, src_ip, bin(5m)
+        | sort failures desc
+      EOT
+    }
+
     # Tuning baseline: which event types and programs fill the Sysmon log.
     # Re-run after any Sysmon config change to measure the effect.
     "T-Q01-sysmon-volume-by-event" = {
