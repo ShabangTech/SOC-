@@ -17,3 +17,8 @@ resource "aws_cloudwatch_log_group" "system" {
   name              = "/${var.name_prefix}/windows/system"
   retention_in_days = var.log_retention_days
 }
+
+resource "aws_cloudwatch_log_group" "linux_auth" {
+  name              = "/${var.name_prefix}/linux/auth"
+  retention_in_days = var.log_retention_days
+}
