@@ -1,7 +1,8 @@
 # ---------------------------------------------------------------------------
 # Detections: metric filters turn matching log lines into numbers,
 # alarms watch those numbers, SNS emails you.
-# The agent sends events as XML, so filters match on the EventID element.
+# Windows events arrive as XML (match on EventID); Linux/Samba auth is plain
+# text (match on the NT_STATUS token).
 # ---------------------------------------------------------------------------
 
 resource "aws_sns_topic" "alerts" {
@@ -90,6 +91,17 @@ locals {
       pattern     = "\"Office16\" \"<Data Name='OriginalFileName'>PowerShell.EXE</Data>\""
       threshold   = 1
       description = "[HIGH] Office app launched PowerShell (possible malicious document). MITRE T1204.002, T1566.001."
+    }
+    # L01 - brute force against SMB (Samba) on the Kali purple-team box.
+    # Samba auth_audit logs each failed login with status [NT_STATUS_WRONG_PASSWORD]
+    # (wrong password) or [NT_STATUS_NO_SUCH_USER] (username guessing). Loopback-only
+    # lab service; ships to /hsoc/linux/samba.
+    # MITRE ATT&CK T1110 Brute Force
+    "L01-smb-failed-logon-burst" = {
+      log_group   = aws_cloudwatch_log_group.linux_samba.name
+      pattern     = "?\"NT_STATUS_WRONG_PASSWORD\" ?\"NT_STATUS_NO_SUCH_USER\""
+      threshold   = var.failed_logon_threshold
+      description = "[MEDIUM] ${var.failed_logon_threshold}+ failed SMB logons in 5 min on Kali Samba (loopback lab). MITRE T1110 Brute Force."
     }
   }
 }
